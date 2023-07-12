@@ -11,22 +11,21 @@ namespace Event_timer
 {
     internal class UDP
     {
-        //이벤트 발생 delegate
-        public delegate void Data_Recieved(string data);
+        public delegate void Data_Recieved(string data);//이벤트 발생 delegate
         public event Data_Recieved data_recieved;
-
-        private Thread udp_recv_thread;//broadcast 되는 data 받기위한 Thread'
-        private static string ip_address = "";
-        private int PORT = 2100;
-        UdpClient udp = new UdpClient();
+        private Thread udp_recv_thread;//broadcast 되는 data 받기위한 Thread
         bool ExitFlag = false;
+
+        UdpClient udp = new UdpClient();
+        private static string ip_address = "192.168.21.255";
+        private int PORT = 8000;
 
         public UDP()
         {
             ExitFlag = true;
             udp_recv_thread = new Thread(async()=> await Run());
             udp_recv_thread.Start();
-            udp.Client.Bind(new IPEndPoint(IPAddress.Any, PORT));
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, PORT)); //모든 IP주소에 대해 수신 대기.
         }
 
         private async Task Run()
@@ -49,7 +48,7 @@ namespace Event_timer
             }
         }
 
-        public void SendData(string data, string ipAddress, int port)
+        public void SendData(string data, string ipAddress, int port) // 특정 ip주소로 send
         {
             try
             {
@@ -62,6 +61,21 @@ namespace Event_timer
             catch (Exception ex)
             {
                 Console.WriteLine("Error sending UDP data: " + ex.Message);
+            }
+            
+        }
+
+        public void broadcast(string data)//192.168.21.255 로 broadcast
+        {
+            try
+            {
+                byte[] bytes = Encoding.ASCII.GetBytes(data);
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(ip_address), PORT);
+                udp.Send(bytes, bytes.Length, endPoint);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error broadcasting UDP data: " + ex.Message);
             }
         }
 
