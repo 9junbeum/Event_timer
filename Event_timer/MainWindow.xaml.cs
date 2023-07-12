@@ -601,6 +601,7 @@ namespace Event_timer
         private void UDP_Connect_Click(object sender, RoutedEventArgs e)
         {
             udp.SendData("하이하이", "192.168.21.11", 8000);
+            //test
         }
         private void udp_Data_Received(string data)
         {
