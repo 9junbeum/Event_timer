@@ -41,7 +41,6 @@ namespace Event_timer
         private TimeSpan interval = TimeSpan.FromSeconds(1);
         //UDP 통신
         private UDP udp;
-        private static string udp_ip = "192.168.21.255";
 
         public MainWindow()
         {
