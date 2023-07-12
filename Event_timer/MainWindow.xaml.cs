@@ -42,6 +42,7 @@ namespace Event_timer
         //UDP 통신
         private UDP udp;
 
+
         public MainWindow()
         {
             InitializeComponent();
