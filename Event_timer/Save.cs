@@ -13,21 +13,26 @@ namespace Event_timer
 {
     internal class Save
     {
-        string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Event_timer_settings";//저장 폴더
-        JObject jobj = new JObject();//Json 객체
-
-
-        List<string> name__ = new List<string>();
-        List<bool[]> dotw__ = new List<bool[]>();
-        List<Time_> stime__ = new List<Time_>();
-        List<Time_> etime__ = new List<Time_>();
-        List<bool[]> event_num__ = new List<bool[]>();
-
-
+        string event_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Event_timer_settings";//저장 폴더
+        string music_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Music_list_settings";//저장 폴더
+        
 
         public bool is_SaveFile_Exist()
         {
-            if (File.Exists(path))
+            if (File.Exists(event_path))
+            {
+                //파일이 있으면
+                return true;
+            }
+            else
+            {
+                //없으면
+                return false;
+            }
+        }
+        public bool is_SaveFile_Exist_()
+        {
+            if (File.Exists(music_path))
             {
                 //파일이 있으면
                 return true;
@@ -51,7 +56,28 @@ namespace Event_timer
                     }
 
                     string json = JsonConvert.SerializeObject(eventDataList, Formatting.Indented);
-                    File.WriteAllText(path, json);
+                    File.WriteAllText(event_path, json);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
+            }
+        }
+        public void SAVE_(ObservableCollection<Music> m)
+        {
+            if (m != null)
+            {
+                try
+                {
+                    List<Music> MusicList = new List<Music>();
+                    foreach (Music ml in m)
+                    {
+                        MusicList.Add(new Music(ml.FileName, ml.FilePath, ml.Duration, ml.Size));
+                    }
+
+                    string json = JsonConvert.SerializeObject(MusicList, Formatting.Indented);
+                    File.WriteAllText(music_path, json);
                 }
                 catch (Exception ex)
                 {
@@ -65,10 +91,11 @@ namespace Event_timer
 
             try
             {
-                string json = File.ReadAllText(path);
-                JArray jArray = JArray.Parse(json);
+                string json_e = File.ReadAllText(event_path);
 
-                foreach (JObject jObject in jArray)
+                JArray jArray_e = JArray.Parse(json_e);
+
+                foreach (JObject jObject in jArray_e)
                 {
                     string name = (string)jObject["Name"];
                     bool[] dotw = jObject["DOTW"].ToObject<bool[]>();
@@ -86,6 +113,35 @@ namespace Event_timer
             }
 
             return events;
+        }
+
+        public ObservableCollection<Music> LOAD_()
+        {
+            ObservableCollection<Music> musics = new ObservableCollection<Music>();
+
+            try
+            {
+                string json_m = File.ReadAllText(music_path);
+
+                JArray jArray_m = JArray.Parse(json_m);
+
+                foreach (JObject jObject in jArray_m)
+                {
+                    string filename = (string)jObject["FileName"];
+                    string filepath = (string)jObject["FilePath"];
+                    TimeSpan duration = jObject["Duration"].ToObject<TimeSpan>();
+                    long size = jObject["Size"].ToObject<long>();
+
+                    Music m = new Music(filename, filepath, duration, size);
+                    musics.Add(m);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+            return musics;
         }
     }
 }

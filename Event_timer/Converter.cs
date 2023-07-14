@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 
 namespace Event_timer
@@ -87,4 +88,69 @@ namespace Event_timer
             throw new NotSupportedException();
         }
     }
+
+    public class DurationConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is TimeSpan duration)
+            {
+                return $"{duration.Minutes}분 {duration.Seconds}초";
+            }
+
+            return string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class SizeConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is long size)
+            {
+                if (size < 1024)
+                {
+                    return $"{size}B";
+                }
+                else if (size < 1024 * 1024)
+                {
+                    double sizeInKB = size / 1024.0;
+                    return $"{sizeInKB:F1}KB";
+                }
+                else
+                {
+                    double sizeInMB = size / (1024.0 * 1024.0);
+                    return $"{sizeInMB:F1}MB";
+                }
+            }
+
+            return string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public class BooleanToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue && boolValue)
+                return Visibility.Visible;
+            else
+                return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
 }

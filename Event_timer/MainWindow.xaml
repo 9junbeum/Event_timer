@@ -4,12 +4,34 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hc="https://handyorg.github.io/handycontrol"
+        xmlns:hci ="clr-namespace:HandyControl.Tools.Helper;assembly=HandyControl"
+        xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
         xmlns:local="clr-namespace:Event_timer"
         mc:Ignorable="d"
         Closed="save_settings" ResizeMode="NoResize"
         Title="MainWindow" Height="800" Width="1200">
     <Window.Resources>
         <local:TimeConverter x:Key="TimeConverter"/>
+        <local:DurationConverter x:Key="DurationConverter"/>
+        <local:SizeConverter x:Key="SizeConverter"/>
+        <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="round_button" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Fill="{TemplateBinding Background}" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="Gray" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -41,7 +63,7 @@
             </Grid.RowDefinitions>
 
             
-            <Grid x:Name="ListView_Grid" Grid.Row="0" Background="AliceBlue" IsEnabled="False">
+            <Grid x:Name="ListView_Grid" Grid.Row="0" Background="AliceBlue">
                 <ListView x:Name="Event_ListView" d:ItemsSource="{d:SampleData}" Margin="5" ScrollViewer.HorizontalScrollBarVisibility ="Hidden" ItemsSource="{Binding Events}">
                     <ListView.Resources>
                         <Style TargetType="GridViewColumnHeader">
@@ -95,7 +117,7 @@
                     <ToggleButton x:Name="manual_8" Click="manual_relay" Tag="8" Width="40" Content="8" HorizontalAlignment="Right" Margin="5" Padding="0"/>
                 </StackPanel>
             </Grid>
-            <Grid x:Name="Event_Grid" Grid.Row="2" IsEnabled="False">
+            <Grid x:Name="Event_Grid" Grid.Row="2" Background="FloralWhite">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="40"/>
                     <RowDefinition Height="30"/>
@@ -124,19 +146,19 @@
                 </Grid>
                 <Grid Grid.Row="2" Grid.ColumnSpan="2">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10 0 0 0">
-
                         <CheckBox x:Name="check_ED" Checked="EveryDay" >
                             <TextBlock Text="매일" Margin="0 0 15 0"/>
                         </CheckBox>
                         <CheckBox x:Name="check_EW" Checked="EveryWeek">
                             <TextBlock Text="매주" Margin="0 0 15 0"/>
                         </CheckBox>
+                        <!--
                         <CheckBox x:Name="check_O" Checked="Once">
                             <TextBlock Text="한번만" Margin="0 0 15 0"/>
                         </CheckBox>
+                        -->
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10 0 0 0">
-
                         <CheckBox x:Name="SUN">
                             <TextBlock Text="일" Margin="0 0 15 0" Foreground="Red"/>
                         </CheckBox>
@@ -212,8 +234,76 @@
         </Grid>
 
         <!--음악 mp3 플레이어-->
-        <Grid Grid.Column="1" Grid.Row="1">
-            
+        <Grid x:Name="Music_player" Grid.Column="1" Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="50"/>
+                <RowDefinition Height="450"/>
+                <RowDefinition Height="50"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <TextBlock Text="음원 등록" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" FontFamily="Gothic" FontSize="20" FontWeight="Bold"/>
+                <Button Content="+" HorizontalAlignment="Right" Width="50" Height="40" Margin="5" Padding="0" FontSize="20" VerticalContentAlignment="Center" Click="Add_new_music"/>
+            </Grid>
+            <Grid Grid.Row="1">
+                <ListView x:Name="Music_ListView" d:ItemsSource="{d:SampleData}" Margin="5" ScrollViewer.HorizontalScrollBarVisibility ="Hidden" ItemsSource="{Binding Musics}" MouseDoubleClick="Music_ListView_MouseDoubleClick">
+                    <ListView.Resources>
+                        <Style TargetType="GridViewColumnHeader">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="GridViewColumnHeader">
+                                        <Grid HorizontalAlignment="Center">
+                                            <ContentPresenter/>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListView.Resources>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="" Width="20">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <materialIcons:MaterialIcon Kind="play" Foreground="Green" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="음원 파일명" Width="180" DisplayMemberBinding="{Binding FileName}"/>
+                            <GridViewColumn Header="재생시간" Width="120" DisplayMemberBinding="{Binding Duration, Converter={StaticResource DurationConverter}}"/>
+                            <GridViewColumn Header="용량" Width="80" DisplayMemberBinding="{Binding Size, Converter={StaticResource SizeConverter}}"/>
+                            <GridViewColumn Header="🗑" Width="70">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button x:Name="music_delete_Btn" Content="삭제" Click="music_delete_Btn_Click"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+            </Grid>
+            <Grid Grid.Row="2">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock Text="현재 곡" Margin="5" FontSize="15" FontFamily="Gothic" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <TextBox x:Name="selected_music" IsReadOnly="True" IsHitTestVisible="False" Width="150" Margin="5" HorizontalContentAlignment="Right" VerticalContentAlignment="Center"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Stop, Size=15}" Padding="0" Margin="3" Click="StopButton_Click"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Play, Size=15}" Padding="0" Margin="3" Click="PlayButton_Click"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Pause, Size=15}" Padding="0" Margin="3" Click="PauseButton_Click"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="repeat" Content="{materialIcons:MaterialIconExt Kind=Repeat}"/>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Row="3">
+                
+            </Grid>
         </Grid>
     </Grid>
 

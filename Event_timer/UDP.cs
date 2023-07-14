@@ -17,8 +17,16 @@ namespace Event_timer
         bool ExitFlag = false;
 
         UdpClient udp = new UdpClient();
-        private static string ip_address = "192.168.21.255";
+        private static string ip_address = "192.168.100.255";
         private int PORT = 8000;
+
+        //명령어
+        string PDON = "@ONPDRELAY;";
+        string PDOFF = "@OFFPDRELAY;";
+
+        string Selector_ALL = "@SETALLONF&1000:1;";
+        string Selector_NONE = "@SETALLONF&1000:0;";
+        string Selector_custom = "@SETRIOONF&1000=1:1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0;";
 
         public UDP()
         {

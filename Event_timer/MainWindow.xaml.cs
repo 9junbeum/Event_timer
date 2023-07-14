@@ -22,6 +22,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Microsoft.Win32;
+using System.IO;
+using NAudio.Wave;
 
 namespace Event_timer
 {
@@ -32,6 +35,7 @@ namespace Event_timer
     {
         SerialPort serial_port = new SerialPort();//시리얼 포트 정보
         static ObservableCollection<Event> Events = new ObservableCollection<Event>();//이벤트 저장
+        static ObservableCollection<Music> Musics = new ObservableCollection<Music>();//음원 저장
         Save settings = new Save(); //설정 저장
         Thread check_serial; //시리얼 연결 체크용 Thread
         bool exitFlag = false;//프로그램 종료 시 Thread 중단용도
@@ -41,7 +45,9 @@ namespace Event_timer
         private TimeSpan interval = TimeSpan.FromSeconds(1);
         //UDP 통신
         private UDP udp;
-
+        //오디오
+        private AudioFileReader audioFileReader; 
+        private WaveOutEvent waveOutEvent;
 
         public MainWindow()
         {
@@ -50,9 +56,12 @@ namespace Event_timer
             load_settings();
             StartTimer();
             Event_ListView.ItemsSource = Events;
+            Music_ListView.ItemsSource = Musics;
             udp = new UDP();
             udp.data_recieved += new UDP.Data_Recieved(udp_Data_Received);
+            waveOutEvent.PlaybackStopped += WaveOutEvent_PlaybackStopped;//음악이 멈추면
         }
+        #region Timer and Check Event
 
         private void StartTimer()
         {
@@ -93,18 +102,18 @@ namespace Event_timer
             DateTime now = DateTime.Now;
             int day_of_week = (int)now.DayOfWeek; //오늘의 요일을 숫자로 변경
 
-            foreach(Event e in Events) //이벤트
+            foreach (Event e in Events) //이벤트
             {
                 if (e.DOTW[day_of_week] == true)//오늘이 이벤트 요일 이라면,
                 {
-                    if(e.S_time.equals_now(now))//시작시간이 현재랑 같은지 확인
+                    if (e.S_time.equals_now(now))//시작시간이 현재랑 같은지 확인
                     {
                         Dispatcher.Invoke(() =>
                         {
                             status_box.AppendText("이벤트 발생\n");
-                            
-                            string data = "";
 
+                            //아두이노 릴레이 제어
+                            string data = "";
                             for (int i = 0; i < e.Event_num.Length; i++)
                             {
                                 if (e.Event_num[i] == true)
@@ -116,16 +125,19 @@ namespace Event_timer
                             {
                                 serial_port.WriteLine(data);
                             });
+
+                            //UDP 통신 제어
+
                         });
                     }
-                    else if(e.E_time.equals_now(now))//종료시간이 현재랑 같은지 확인
+                    else if (e.E_time.equals_now(now))//종료시간이 현재랑 같은지 확인
                     {
                         Dispatcher.Invoke(() =>
                         {
                             status_box.AppendText("이벤트 종료\n");
-                            
-                            string data = "";
 
+                            //아두이노 릴레이 제어
+                            string data = "";
                             for (int i = 0; i < e.Event_num.Length; i++)
                             {
                                 if (e.Event_num[i] == true)
@@ -133,16 +145,21 @@ namespace Event_timer
                                     data += (i + 1).ToString() + "0";
                                 }
                             }
-
                             Task.Run(() =>
                             {
                                 serial_port.WriteLine(data);
                             });
+
+                            //UDP 통신 제어
+                            
                         });
                     }
                 }
             }
         }
+        #endregion
+
+        #region Serial
 
         private void Initialize_Serial_Port()
         {
@@ -151,15 +168,7 @@ namespace Event_timer
             Serial_combo.ItemsSource = ports; //연결된 port 이름을 저장.
         }
 
-        private void Close_Btn_Click(object sender, RoutedEventArgs e)
-        {
-            //시스템 종료 버튼
-            exitFlag = false;
-            udp.Kill_Thread_UDP();
-            Thread.Sleep(200);
-            this.Close();
-        }
-        
+
         private void Serial_connect_Btn_Click(object sender, RoutedEventArgs e)
         {
             //상단의 시리얼통신 연결 버튼 클릭 시
@@ -195,9 +204,7 @@ namespace Event_timer
                             Serial_combo.IsEnabled = false;
                             Serial_connect_Btn.IsEnabled = false;
                             Serial_connect_Btn.Content = "연결됨";
-                            ListView_Grid.IsEnabled = true;
                             Manual_Relay_Grid.IsEnabled = true;
-                            Event_Grid.IsEnabled = true;
                         }
                         else
                         {
@@ -230,9 +237,7 @@ namespace Event_timer
                         Serial_connect_Btn.IsEnabled = true;
                         Serial_connect_Btn.Content = "연결";
 
-                        ListView_Grid.IsEnabled = false;
                         Manual_Relay_Grid.IsEnabled = false;
-                        Event_Grid.IsEnabled = false;
                     });
                     return;
                 }
@@ -248,6 +253,36 @@ namespace Event_timer
             {
                 status_box.AppendText(receivedData + "\n");//UI 스레드에서 UI 요소에 접근.
             });
+        }
+        #endregion
+
+        #region Save and Load
+
+        private void save_settings(object sender, EventArgs e)
+        {
+            //시스템 종료 시 현재 설정 저장.
+            settings.SAVE(Events);
+            settings.SAVE_(Musics);
+        }
+
+        private void load_settings()
+        {
+            //시스템 시작 시 저장된 설정값 불러오기.
+            Events = settings.LOAD();
+            Musics = settings.LOAD_();
+        }
+
+        #endregion
+
+        private void Close_Btn_Click(object sender, RoutedEventArgs e)
+        {
+            //시스템 종료 버튼
+            exitFlag = false;
+            udp.Kill_Thread_UDP();
+            timer.Stop();
+            stopwatch.Stop();
+            Thread.Sleep(200);
+            this.Close();
         }
 
         private void Add_event_Btn_Click(object sender, RoutedEventArgs e)
@@ -456,25 +491,13 @@ namespace Event_timer
             event_8.IsChecked = false;
         }
 
-        private void save_settings(object sender, EventArgs e)
-        {
-            //시스템 종료 시 현재 설정 저장.
-            settings.SAVE(Events);
-        }
-
-        private void load_settings()
-        {
-            //시스템 시작 시 저장된 설정값 불러오기.
-            Events = settings.LOAD();
-        }
-
         private void EveryDay(object sender, RoutedEventArgs e)
         {
             //매일
 
             //나머지 해제
             check_EW.IsChecked = false;
-            check_O.IsChecked = false;
+            //check_O.IsChecked = false;
 
             //월화수목금토일 모두 체크
             MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = SAT.IsChecked = SUN.IsChecked = true;
@@ -487,12 +510,12 @@ namespace Event_timer
 
             //나머지 해제
             check_ED.IsChecked = false;
-            check_O.IsChecked = false;
+            //check_O.IsChecked = false;
 
             //일단 월화수목금토일 모두 해제
             MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = SAT.IsChecked = SUN.IsChecked = false;
         }
-
+        /*
         private void Once(object sender, RoutedEventArgs e)
         {
             //한번만
@@ -504,7 +527,7 @@ namespace Event_timer
             //일단 월화수목금토일 모두 해제
             MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = SAT.IsChecked = SUN.IsChecked = false;
         }
-
+        */
         private void event_delete_Btn_Click(object sender, RoutedEventArgs e)
         {
             MessageBoxResult result = MessageBox.Show("정말로 이벤트를 삭제하시겠습니까?", "삭제", MessageBoxButton.OKCancel);
@@ -598,6 +621,7 @@ namespace Event_timer
             status_box.ScrollToEnd();//자동 스크롤
         }
 
+        #region UDP
         private void UDP_Connect_Click(object sender, RoutedEventArgs e)
         {
             //udp.broadcast("test data string");
@@ -607,7 +631,143 @@ namespace Event_timer
         private void udp_Data_Received(string data)
         {
             //udp 데이터 수신 시
-            MessageBox.Show($"UDP data received: {data}");
+            //MessageBox.Show($"UDP data received: {data}");
+        }
+
+        #endregion
+
+        #region music
+
+        private void music_delete_Btn_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult result = MessageBox.Show("정말로 음원을 삭제하시겠습니까?", "삭제", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.OK)
+            {
+                Button b = (Button)sender;
+                Music item = (Music)b.DataContext;
+
+                Musics.Remove(item);
+            }
+            else if (result == MessageBoxResult.Cancel)
+            {
+                return;
+            }
+        }
+
+        private void Add_new_music(object sender, RoutedEventArgs e)
+        {
+            //새로운 음원 등록
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Multiselect = true; // 여러 개의 파일 선택 가능
+
+            // 파일 필터링을 설정하여 mp3 파일만 표시되도록 함
+            openFileDialog.Filter = "MP3 Files (*.mp3)|*.mp3|All Files (*.*)|*.*";
+            openFileDialog.FilterIndex = 1; // 초기 필터 인덱스 설정
+
+            bool? result = openFileDialog.ShowDialog();
+
+            if (result == true)
+            {
+                foreach (string fileName in openFileDialog.FileNames)
+                {
+                    // 파일 정보 가져오기
+                    var fileInfo = new FileInfo(fileName);
+                    string filePath = fileInfo.FullName;
+                    long fileSize = fileInfo.Length;
+
+                    // 음원 길이 가져오기 (예시로 10초로 설정)
+                    TimeSpan duration = GetAudioFileDuration(filePath);
+
+                    // 음원 정보를 ObservableCollection에 추가
+                    Musics.Add(new Music
+                    {
+                        FileName = fileInfo.Name,
+                        FilePath = filePath,
+                        Duration = duration,
+                        Size = fileSize
+                    });
+                }
+            }
+        }
+
+        private TimeSpan GetAudioFileDuration(string filePath)
+        {
+            using (var audioFile = new AudioFileReader(filePath))
+            {
+                return audioFile.TotalTime;
+            }
+        }
+
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Paused)
+            {
+                waveOutEvent.Play();
+            }
+        }
+
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+            {
+                waveOutEvent.Pause();
+            }
+        }
+
+        private void StopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+            {
+                waveOutEvent.Stop();
+                audioFileReader.Position = 0;
+            }
+        }
+
+        private void OpenFile(string filePath)
+        {
+            CleanupAudio();
+            audioFileReader = new AudioFileReader(filePath);
+            waveOutEvent = new WaveOutEvent();
+            waveOutEvent.Init(audioFileReader);
+        }
+
+        private void CleanupAudio()
+        {
+            if (waveOutEvent != null)
+            {
+                waveOutEvent.Stop();
+                waveOutEvent.Dispose();
+                waveOutEvent = null;
+            }
+            if (audioFileReader != null)
+            {
+                audioFileReader.Dispose();
+                audioFileReader = null;
+            }
+        }
+        #endregion
+
+        private void Music_ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //listView 아이템 더블클릭시
+            if (Music_ListView.SelectedItem is Music selectedMusic)
+            {
+                if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+                {
+                    waveOutEvent.Stop();
+                    audioFileReader.Position = 0;
+                }
+
+                OpenFile(selectedMusic.FilePath);
+                waveOutEvent.Play();
+                selectedMusic.IsPlaying = true;
+            }
+        }
+
+        private void WaveOutEvent_PlaybackStopped(object sender, StoppedEventArgs e)
+        {
+            // 오디오 재생이 끝나면 실행될 코드 작성
+            // e.Exception 속성을 통해 재생 중 발생한 예외를 확인할 수도 있습니다.
         }
     }
 }
