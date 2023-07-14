@@ -471,7 +471,7 @@ namespace Event_timer
             Event_Name.Clear();
             check_ED.IsChecked = false;
             check_EW.IsChecked = false;
-            check_O.IsChecked = false;
+            //check_O.IsChecked = false;
             MON.IsChecked = false;
             TUE.IsChecked = false;
             WED.IsChecked = false;
@@ -622,11 +622,6 @@ namespace Event_timer
         }
 
         #region UDP
-        private void UDP_Connect_Click(object sender, RoutedEventArgs e)
-        {
-            //udp.broadcast("test data string");
-            //udp.SendData("test data string", "192.168.21.11", 8000);
-        }
 
         private void udp_Data_Received(string data)
         {

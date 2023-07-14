@@ -49,7 +49,10 @@
                 <Grid Width="10"/>
                 <ComboBox Name="Serial_combo" Margin="2" DataContext="" Width="80" Height="30" />
                 <Button x:Name="Serial_connect_Btn" Content="연결" Margin="5" Click="Serial_connect_Btn_Click" Width="80"/>
-                <Button x:Name="UDP_Connect" Content="UDP" Margin="5" Click="UDP_Connect_Click" Width="80"/>
+                <!--
+                <Button x:Name="UDP_Connect" Content="UDP" Margin="5" Click="UDP_Connect_Click" Width="70"/>
+                -->
+                
             </StackPanel>
             <Button x:Name="Close_Btn" Click="Close_Btn_Click" Width="100" Content="종료" HorizontalAlignment="Right" Margin="5"/>
 
