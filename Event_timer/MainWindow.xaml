@@ -266,15 +266,15 @@
                     </ListView.Resources>
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="" Width="20">
+                            <GridViewColumn Header="" Width="30">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <materialIcons:MaterialIcon Kind="play" Foreground="Green" Visibility="{Binding IsPlaying, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center"/>
+                                        <materialIcons:MaterialIcon Kind="play" Foreground="Green" Visibility="{Binding Is_Playing, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center"/>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Header="음원 파일명" Width="180" DisplayMemberBinding="{Binding FileName}"/>
-                            <GridViewColumn Header="재생시간" Width="120" DisplayMemberBinding="{Binding Duration, Converter={StaticResource DurationConverter}}"/>
+                            <GridViewColumn Header="재생시간" Width="100" DisplayMemberBinding="{Binding Duration, Converter={StaticResource DurationConverter}}"/>
                             <GridViewColumn Header="용량" Width="80" DisplayMemberBinding="{Binding Size, Converter={StaticResource SizeConverter}}"/>
                             <GridViewColumn Header="🗑" Width="70">
                                 <GridViewColumn.CellTemplate>
@@ -299,9 +299,6 @@
                     <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Stop, Size=15}" Padding="0" Margin="3" Click="StopButton_Click"/>
                     <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Play, Size=15}" Padding="0" Margin="3" Click="PlayButton_Click"/>
                     <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Pause, Size=15}" Padding="0" Margin="3" Click="PauseButton_Click"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="repeat" Content="{materialIcons:MaterialIconExt Kind=Repeat}"/>
                 </StackPanel>
             </Grid>
             <Grid Grid.Row="3">

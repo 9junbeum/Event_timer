@@ -48,6 +48,9 @@ namespace Event_timer
         //오디오
         private AudioFileReader audioFileReader; 
         private WaveOutEvent waveOutEvent;
+        private int current_music_index; //현재 곡 index
+        private bool is_Playing = false;// 현재 곡 재생중인지?
+        private bool is_Stopped = false;//Stop() 버튼이 눌린건지?
 
         public MainWindow()
         {
@@ -59,7 +62,6 @@ namespace Event_timer
             Music_ListView.ItemsSource = Musics;
             udp = new UDP();
             udp.data_recieved += new UDP.Data_Recieved(udp_Data_Received);
-            waveOutEvent.PlaybackStopped += WaveOutEvent_PlaybackStopped;//음악이 멈추면
         }
         #region Timer and Check Event
 
@@ -128,6 +130,8 @@ namespace Event_timer
 
                             //UDP 통신 제어
 
+                            //오디오 음악 재생
+
                         });
                     }
                     else if (e.E_time.equals_now(now))//종료시간이 현재랑 같은지 확인
@@ -151,7 +155,9 @@ namespace Event_timer
                             });
 
                             //UDP 통신 제어
-                            
+
+                            //오디오 음악 종료
+
                         });
                     }
                 }
@@ -693,6 +699,36 @@ namespace Event_timer
             }
         }
 
+        private void OpenFile(string filePath)
+        {
+            CleanupAudio();
+            audioFileReader = new AudioFileReader(filePath);
+            waveOutEvent = new WaveOutEvent();
+            waveOutEvent.Init(audioFileReader);
+            waveOutEvent.PlaybackStopped += WaveOutEvent_PlaybackStopped;//음악이 멈추면
+            
+        }
+
+        private void CleanupAudio()
+        {
+            if (waveOutEvent != null)
+            {
+                waveOutEvent.PlaybackStopped -= WaveOutEvent_PlaybackStopped;
+                waveOutEvent.Stop();
+                waveOutEvent.Dispose();
+                waveOutEvent = null;
+            }
+            if (audioFileReader != null)
+            {
+                if (waveOutEvent!=null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+                {
+                    waveOutEvent.Stop();
+                    audioFileReader.Dispose();
+                    audioFileReader = null;
+                }
+            }
+        }
+
         private void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Paused)
@@ -715,36 +751,52 @@ namespace Event_timer
             {
                 waveOutEvent.Stop();
                 audioFileReader.Position = 0;
+                is_Stopped = true;
             }
         }
 
-        private void OpenFile(string filePath)
+        private void PlayNextMusic()
         {
-            CleanupAudio();
-            audioFileReader = new AudioFileReader(filePath);
-            waveOutEvent = new WaveOutEvent();
-            waveOutEvent.Init(audioFileReader);
+            // 현재 재생 중인 음악 정지
+            StopCurrentMusic();
+
+            if (current_music_index < Musics.Count)
+            {
+                // 다음 음악 재생
+                Music music = Musics[current_music_index];
+                OpenFile(music.FilePath);
+                waveOutEvent.Play();
+                music.Is_Playing = true;
+
+                // 다음 음악 인덱스로 이동
+                current_music_index++;
+            }
+            else
+            {
+                // 마지막 음악까지 재생한 경우, 재생을 종료하고 후속 작업 수행
+                //Stop();
+                // 종료 이벤트 등 추가 작업 수행
+            }
         }
 
-        private void CleanupAudio()
+        private void StopCurrentMusic()
         {
-            if (waveOutEvent != null)
+            // 현재 재생 중인 음악 정지
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
             {
                 waveOutEvent.Stop();
-                waveOutEvent.Dispose();
-                waveOutEvent = null;
-            }
-            if (audioFileReader != null)
-            {
-                audioFileReader.Dispose();
-                audioFileReader = null;
+                audioFileReader.Position = 0;
+                if (current_music_index < Musics.Count)
+                {
+                    Musics[current_music_index].Is_Playing = false;
+                }
             }
         }
-        #endregion
 
         private void Music_ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             //listView 아이템 더블클릭시
+            //재생곡, index, isplaying 변경
             if (Music_ListView.SelectedItem is Music selectedMusic)
             {
                 if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
@@ -753,16 +805,43 @@ namespace Event_timer
                     audioFileReader.Position = 0;
                 }
 
+                //isplaying 변경
+                Make_All_Music_False();//모든 음악 isPlaying = false;
+                selectedMusic.Is_Playing = true;
+                //재생곡 변경
                 OpenFile(selectedMusic.FilePath);
                 waveOutEvent.Play();
-                selectedMusic.IsPlaying = true;
+                //index 변경
+                current_music_index = Music_ListView.SelectedIndex;
             }
         }
-
+        private void Make_All_Music_False()
+        {
+            foreach (Music music in Musics)
+            {
+                music.Is_Playing = false;
+            }
+        }
         private void WaveOutEvent_PlaybackStopped(object sender, StoppedEventArgs e)
         {
             // 오디오 재생이 끝나면 실행될 코드 작성
             // e.Exception 속성을 통해 재생 중 발생한 예외를 확인할 수도 있습니다.
+            Console.WriteLine(e.Exception);
+            WaveOutEvent woe = sender as WaveOutEvent;
+            //음악이 끝난거라면,
+            if (!is_Stopped)
+            {
+                //곡 시간 끝남
+                PlayNextMusic();
+            }
+            else
+            {
+                //정지버튼 누름
+                is_Stopped = false;
+            }
         }
+
+
+        #endregion
     }
 }
