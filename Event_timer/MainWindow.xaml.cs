@@ -49,7 +49,6 @@ namespace Event_timer
         private AudioFileReader audioFileReader; 
         private WaveOutEvent waveOutEvent;
         private int current_music_index; //현재 곡 index
-        private bool is_Playing = false;// 현재 곡 재생중인지?
         private bool is_Stopped = false;//Stop() 버튼이 눌린건지?
 
         public MainWindow()
@@ -63,6 +62,7 @@ namespace Event_timer
             udp = new UDP();
             udp.data_recieved += new UDP.Data_Recieved(udp_Data_Received);
         }
+
         #region Timer and Check Event
 
         private void StartTimer()
@@ -113,24 +113,45 @@ namespace Event_timer
                         Dispatcher.Invoke(() =>
                         {
                             status_box.AppendText("이벤트 발생\n");
-
-                            //아두이노 릴레이 제어
-                            string data = "";
-                            for (int i = 0; i < e.Event_num.Length; i++)
+                            try
                             {
-                                if (e.Event_num[i] == true)
+                                //아두이노 릴레이 제어
+                                //string data = "";
+                                //for (int i = 0; i < e.Event_num.Length; i++)
+                                //{
+                                //    if (e.Event_num[i] == true)
+                                //    {
+                                //        data += (i + 1).ToString() + "1";
+                                //    }
+                                //}
+                                //Task.Run(() =>
+                                //{
+                                //    serial_port.WriteLine(data);
+                                //});
+
+                                //UDP 통신 제어
+                                Task.Run(() =>
                                 {
-                                    data += (i + 1).ToString() + "1";
-                                }
+                                    udp.broadcast(udp.PDON);
+                                });
+                                Task.Run(() =>
+                                {
+                                    udp.broadcast(udp.SELECTOR_ON);
+                                });
+
+                                //오디오 음악 재생
+                                Task.Run(async() =>
+                                {
+                                    await Task.Delay(20000);//20초 대기 후 음악 재생
+                                    Start_Music_Auto();
+
+                                });
+
                             }
-                            Task.Run(() =>
+                            catch (Exception ex)
                             {
-                                serial_port.WriteLine(data);
-                            });
-
-                            //UDP 통신 제어
-
-                            //오디오 음악 재생
+                                Console.WriteLine(ex.ToString());
+                            }
 
                         });
                     }
@@ -140,24 +161,42 @@ namespace Event_timer
                         {
                             status_box.AppendText("이벤트 종료\n");
 
-                            //아두이노 릴레이 제어
-                            string data = "";
-                            for (int i = 0; i < e.Event_num.Length; i++)
+                            try
                             {
-                                if (e.Event_num[i] == true)
+                                //아두이노 릴레이 제어
+                                //string data = "";
+                                //for (int i = 0; i < e.Event_num.Length; i++)
+                                //{
+                                //    if (e.Event_num[i] == true)
+                                //    {
+                                //        data += (i + 1).ToString() + "0";
+                                //    }
+                                //}
+                                //Task.Run(() =>
+                                //{
+                                //    serial_port.WriteLine(data);
+                                //});
+
+                                //UDP 통신 제어
+
+                                Task.Run(() =>
                                 {
-                                    data += (i + 1).ToString() + "0";
-                                }
+                                    udp.broadcast(udp.PDOFF);
+                                });
+                                Task.Run(() =>
+                                {
+                                    udp.broadcast(udp.SELECTOR_OFF);
+                                });
+                                //오디오 음악 종료
+                                Task.Run(() =>
+                                {
+                                    End_Music_Auto();
+                                });
                             }
-                            Task.Run(() =>
+                            catch (Exception ex)
                             {
-                                serial_port.WriteLine(data);
-                            });
-
-                            //UDP 통신 제어
-
-                            //오디오 음악 종료
-
+                                Console.WriteLine(ex.ToString());
+                            }
                         });
                     }
                 }
@@ -280,6 +319,8 @@ namespace Event_timer
 
         #endregion
 
+        #region System and UI
+
         private void Close_Btn_Click(object sender, RoutedEventArgs e)
         {
             //시스템 종료 버튼
@@ -303,7 +344,7 @@ namespace Event_timer
 
             try
             {
-                if(Event_Name.Text != "")
+                if (Event_Name.Text != "")
                 {
                     name = Event_Name.Text;
                 }
@@ -334,7 +375,7 @@ namespace Event_timer
                 }
 
                 int count = 0;
-                for (int i=0; i< arr_dotw.Length;i++)
+                for (int i = 0; i < arr_dotw.Length; i++)
                 {
                     if (arr_dotw[i] == true)
                     {
@@ -349,18 +390,18 @@ namespace Event_timer
                 }
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show("이벤트 요일 설정 중 오류가 발생하였습니다.\n" + ex);
                 return;
             }//dotw
             try
             {
-                if(s_time_picker.Is_time_exist())
+                if (s_time_picker.Is_time_exist())
                 {
                     if (e_time_picker.Is_time_exist())
                     {
-                        if(IsEarlierThan(s_time_picker.Get_Time(), e_time_picker.Get_Time()))
+                        if (IsEarlierThan(s_time_picker.Get_Time(), e_time_picker.Get_Time()))
                         {
                             s_time = s_time_picker.Get_Time();
                             e_time = e_time_picker.Get_Time();
@@ -477,6 +518,8 @@ namespace Event_timer
             Event_Name.Clear();
             check_ED.IsChecked = false;
             check_EW.IsChecked = false;
+            check_WD.IsChecked = false;
+            check_WE.IsChecked = false;
             //check_O.IsChecked = false;
             MON.IsChecked = false;
             TUE.IsChecked = false;
@@ -503,6 +546,8 @@ namespace Event_timer
 
             //나머지 해제
             check_EW.IsChecked = false;
+            check_WE.IsChecked = false;
+            check_WD.IsChecked = false;
             //check_O.IsChecked = false;
 
             //월화수목금토일 모두 체크
@@ -516,11 +561,44 @@ namespace Event_timer
 
             //나머지 해제
             check_ED.IsChecked = false;
+            check_WE.IsChecked = false;
+            check_WD.IsChecked = false;
             //check_O.IsChecked = false;
 
             //일단 월화수목금토일 모두 해제
             MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = SAT.IsChecked = SUN.IsChecked = false;
         }
+
+        private void WeekEnds(object sender, RoutedEventArgs e)
+        {
+            //주말
+
+            //나머지 해제
+            check_EW.IsChecked = false;
+            check_ED.IsChecked = false;
+            check_WD.IsChecked = false;
+            //check_O.IsChecked = false;
+
+            //토요일, 일요일만 체크
+            MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = false;
+            SAT.IsChecked = SUN.IsChecked = true;
+        }
+
+        private void WeekDays(object sender, RoutedEventArgs e)
+        {
+            //주중
+
+            //나머지 해제
+            check_EW.IsChecked = false;
+            check_ED.IsChecked = false;
+            check_WE.IsChecked = false;
+            //check_O.IsChecked = false;
+
+            //주중만 체크
+            MON.IsChecked = TUE.IsChecked = WED.IsChecked = THU.IsChecked = FRI.IsChecked = true;
+            SAT.IsChecked = SUN.IsChecked = false;
+        }
+
         /*
         private void Once(object sender, RoutedEventArgs e)
         {
@@ -537,14 +615,14 @@ namespace Event_timer
         private void event_delete_Btn_Click(object sender, RoutedEventArgs e)
         {
             MessageBoxResult result = MessageBox.Show("정말로 이벤트를 삭제하시겠습니까?", "삭제", MessageBoxButton.OKCancel);
-            if(result == MessageBoxResult.OK)
+            if (result == MessageBoxResult.OK)
             {
                 Button b = (Button)sender;
                 Event item = (Event)b.DataContext;
 
                 Events.Remove(item);
             }
-            else if(result == MessageBoxResult.Cancel)
+            else if (result == MessageBoxResult.Cancel)
             {
                 return;
             }
@@ -557,7 +635,7 @@ namespace Event_timer
             ToggleButton b = sender as ToggleButton;
             string tag = b.Tag.ToString();
 
-            if(b.IsChecked == true)
+            if (b.IsChecked == true)
             {
                 await Task.Run(() =>
                 {
@@ -579,38 +657,64 @@ namespace Event_timer
         {
             //이벤트가 체크 될 때
             //최대 2개만 선택가능하도록 알림
+            //추후 스피커 셀렉터 설정으로 변경시 필요없음
             int checked_event = 0;
-            if (event_1.IsChecked == true)
+
+            if (event_1 != null)
             {
-                checked_event += 1;
+                if (event_1.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_2.IsChecked == true)
+            if (event_2 != null)
             {
-                checked_event += 1;
+                if (event_2.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_3.IsChecked == true)
+            if (event_3 != null)
             {
-                checked_event += 1;
+                if (event_3.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_4.IsChecked == true)
+            if (event_4 != null)
             {
-                checked_event += 1;
+                if (event_4.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_5.IsChecked == true)
+            if (event_5 != null)
             {
-                checked_event += 1;
+                if (event_5.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_6.IsChecked == true)
+            if (event_6 != null)
             {
-                checked_event += 1;
+                if (event_6.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_7.IsChecked == true)
+            if (event_7 != null)
             {
-                checked_event += 1;
+                if (event_7.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
-            if (event_8.IsChecked == true)
+            if (event_8 != null)
             {
-                checked_event += 1;
+                if (event_8.IsChecked == true)
+                {
+                    checked_event += 1;
+                }
             }
 
             if (checked_event > 2)
@@ -626,6 +730,7 @@ namespace Event_timer
         {
             status_box.ScrollToEnd();//자동 스크롤
         }
+        #endregion
 
         #region UDP
 
@@ -699,14 +804,14 @@ namespace Event_timer
             }
         }
 
-        private void OpenFile(string filePath)
+        private void OpenFile(Music music)
         {
             CleanupAudio();
-            audioFileReader = new AudioFileReader(filePath);
+            Musics[current_music_index].Is_Playing = true;
+            audioFileReader = new AudioFileReader(music.FilePath);
             waveOutEvent = new WaveOutEvent();
             waveOutEvent.Init(audioFileReader);
-            waveOutEvent.PlaybackStopped += WaveOutEvent_PlaybackStopped;//음악이 멈추면
-            
+            waveOutEvent.PlaybackStopped += WaveOutEvent_PlaybackStopped;//음악이 멈추면            
         }
 
         private void CleanupAudio()
@@ -764,7 +869,7 @@ namespace Event_timer
             {
                 // 다음 음악 재생
                 Music music = Musics[current_music_index];
-                OpenFile(music.FilePath);
+                OpenFile(music);
                 waveOutEvent.Play();
                 music.Is_Playing = true;
 
@@ -809,25 +914,26 @@ namespace Event_timer
                 Make_All_Music_False();//모든 음악 isPlaying = false;
                 selectedMusic.Is_Playing = true;
                 //재생곡 변경
-                OpenFile(selectedMusic.FilePath);
+                OpenFile(selectedMusic);
                 waveOutEvent.Play();
                 //index 변경
                 current_music_index = Music_ListView.SelectedIndex;
             }
         }
+
         private void Make_All_Music_False()
         {
+            //ListView 의 ▶ 버튼 모두 안보이기
             foreach (Music music in Musics)
             {
                 music.Is_Playing = false;
             }
         }
+
         private void WaveOutEvent_PlaybackStopped(object sender, StoppedEventArgs e)
         {
-            // 오디오 재생이 끝나면 실행될 코드 작성
-            // e.Exception 속성을 통해 재생 중 발생한 예외를 확인할 수도 있습니다.
-            Console.WriteLine(e.Exception);
-            WaveOutEvent woe = sender as WaveOutEvent;
+            // 오디오 재생이 멈추면 실행될 코드 작성
+
             //음악이 끝난거라면,
             if (!is_Stopped)
             {
@@ -841,7 +947,34 @@ namespace Event_timer
             }
         }
 
+        private void Start_Music_Auto()
+        {
+            //자동으로 음악 시작 (시작 이벤트 발생 시)
 
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+            {
+                waveOutEvent.Stop();
+                audioFileReader.Position = 0;
+            }
+            OpenFile(Musics[0]);
+            waveOutEvent.Play();
+        }
+
+        private void End_Music_Auto()
+        {
+            //자동으로 음악 종료 (종료 이벤트 발생 시)
+
+            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+            {
+                waveOutEvent.Stop();
+                audioFileReader.Position = 0;
+                if (current_music_index < Musics.Count)
+                {
+                    Musics[current_music_index].Is_Playing = false;
+                }
+            }
+
+        }
         #endregion
     }
 }

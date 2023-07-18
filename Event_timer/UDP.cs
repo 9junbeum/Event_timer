@@ -19,15 +19,19 @@ namespace Event_timer
 
         UdpClient udp = new UdpClient();
         private static string ip_address = "192.168.100.255";
-        private int PORT = 8000;
+        private int PORT = 5391;
 
         //명령어
-        string PDON = "@ONPDRELAY;";
-        string PDOFF = "@OFFPDRELAY;";
+        public string PDON = "@ONPDRELAY;";
+        public string PDOFF = "@OFFPDRELAY;";
 
-        string Selector_ALL = "@SETALLONF&1000:1;";
-        string Selector_NONE = "@SETALLONF&1000:0;";
-        string Selector_custom = "@SETRIOONF&1000=1:1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0;";
+        public string Selector_ALL = "@SETALLONF&1000:1;";
+        public string Selector_NONE = "@SETALLONF&1000:0;";
+        public string Selector_custom = "@SETRIOONF&1000=1:1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0;";
+
+        //Hard Coding 명령어
+        public string SELECTOR_ON  = "@SETRIOONF&1000=1:1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0;";
+        public string SELECTOR_OFF = "@SETRIOONF&1000=1:0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;";
 
         public UDP()
         {
@@ -74,7 +78,7 @@ namespace Event_timer
             
         }
 
-        public void broadcast(string data)//192.168.21.255 로 broadcast
+        public void broadcast(string data)//broadcast
         {
             try
             {

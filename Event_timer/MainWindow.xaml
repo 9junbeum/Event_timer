@@ -47,8 +47,8 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                 <Image x:Name="Logo_Img" Source="/Resources/Main_Logo.png" Margin="5"/>
                 <Grid Width="10"/>
-                <ComboBox Name="Serial_combo" Margin="2" DataContext="" Width="80" Height="30" />
-                <Button x:Name="Serial_connect_Btn" Content="연결" Margin="5" Click="Serial_connect_Btn_Click" Width="80"/>
+                <ComboBox Name="Serial_combo" Margin="2" DataContext="" Width="80" Height="30" IsEnabled="False"/>
+                <Button x:Name="Serial_connect_Btn" Content="연결" Margin="5" Click="Serial_connect_Btn_Click" Width="80" IsEnabled="False"/>
                 <!--
                 <Button x:Name="UDP_Connect" Content="UDP" Margin="5" Click="UDP_Connect_Click" Width="70"/>
                 -->
@@ -155,6 +155,12 @@
                         <CheckBox x:Name="check_EW" Checked="EveryWeek">
                             <TextBlock Text="매주" Margin="0 0 15 0"/>
                         </CheckBox>
+                        <CheckBox x:Name="check_WE" Checked="WeekEnds">
+                            <TextBlock Text="주말" Margin="0 0 15 0"/>
+                        </CheckBox>
+                        <CheckBox x:Name="check_WD" Checked="WeekDays">
+                            <TextBlock Text="주중" Margin="0 0 15 0"/>
+                        </CheckBox>
                         <!--
                         <CheckBox x:Name="check_O" Checked="Once">
                             <TextBlock Text="한번만" Margin="0 0 15 0"/>
@@ -194,11 +200,11 @@
                     </StackPanel>
 
                 </Grid>
-                <Grid Grid.Row="4">
+                <Grid Grid.Row="4" IsEnabled="False">
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10 0 0 0">
                         <TextBlock Text="발생 이벤트  " VerticalAlignment="Center"/>
-                        <CheckBox x:Name="event_1" Checked="event_Checked">
+                        <CheckBox x:Name="event_1" Checked="event_Checked" IsChecked="True">
                             <TextBlock Text="1" Margin="0 0 15 0"/>
                         </CheckBox>
                         <CheckBox x:Name="event_2" Checked="event_Checked">
@@ -302,7 +308,7 @@
                 </StackPanel>
             </Grid>
             <Grid Grid.Row="3">
-                
+
             </Grid>
         </Grid>
     </Grid>
