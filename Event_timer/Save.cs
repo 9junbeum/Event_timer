@@ -73,7 +73,7 @@ namespace Event_timer
                     List<Music> MusicList = new List<Music>();
                     foreach (Music ml in m)
                     {
-                        MusicList.Add(new Music(ml.FileName, ml.FilePath, ml.Duration, ml.Size));
+                        MusicList.Add(new Music(ml.Is_Playing, ml.FileName, ml.FilePath, ml.Duration, ml.Size));
                     }
 
                     string json = JsonConvert.SerializeObject(MusicList, Formatting.Indented);
@@ -127,12 +127,13 @@ namespace Event_timer
 
                 foreach (JObject jObject in jArray_m)
                 {
+                    bool is_playing = false;
                     string filename = (string)jObject["FileName"];
                     string filepath = (string)jObject["FilePath"];
                     TimeSpan duration = jObject["Duration"].ToObject<TimeSpan>();
                     long size = jObject["Size"].ToObject<long>();
 
-                    Music m = new Music(filename, filepath, duration, size);
+                    Music m = new Music(is_playing, filename, filepath, duration, size);
                     musics.Add(m);
                 }
             }

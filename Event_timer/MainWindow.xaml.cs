@@ -49,7 +49,8 @@ namespace Event_timer
         private AudioFileReader audioFileReader; 
         private WaveOutEvent waveOutEvent;
         private int current_music_index; //현재 곡 index
-        private bool is_Stopped = false;//Stop() 버튼이 눌린건지?
+        private bool is_Stopped = false;//Stop() 버튼이 눌린건지? 곡 끝날때만 
+        private bool is_DoubleClick = false;//더블클릭으로 곡이 종료될 경우는 1회 next 발생 x
 
         public MainWindow()
         {
@@ -521,6 +522,7 @@ namespace Event_timer
             check_WD.IsChecked = false;
             check_WE.IsChecked = false;
             //check_O.IsChecked = false;
+
             MON.IsChecked = false;
             TUE.IsChecked = false;
             WED.IsChecked = false;
@@ -528,16 +530,18 @@ namespace Event_timer
             FRI.IsChecked = false;
             SAT.IsChecked = false;
             SUN.IsChecked = false;
+
             s_time_picker.Clear();
             e_time_picker.Clear();
-            event_1.IsChecked = false;
-            event_2.IsChecked = false;
-            event_3.IsChecked = false;
-            event_4.IsChecked = false;
-            event_5.IsChecked = false;
-            event_6.IsChecked = false;
-            event_7.IsChecked = false;
-            event_8.IsChecked = false;
+
+            //event_1.IsChecked = false;
+            //event_2.IsChecked = false;
+            //event_3.IsChecked = false;
+            //event_4.IsChecked = false;
+            //event_5.IsChecked = false;
+            //event_6.IsChecked = false;
+            //event_7.IsChecked = false;
+            //event_8.IsChecked = false;
         }
 
         private void EveryDay(object sender, RoutedEventArgs e)
@@ -806,7 +810,9 @@ namespace Event_timer
 
         private void OpenFile(Music music)
         {
-            CleanupAudio();
+            CleanupAudio();//waveOutEvent 와 audioFileReader 두개를 모두 정리.
+            
+            //
             Musics[current_music_index].Is_Playing = true;
             audioFileReader = new AudioFileReader(music.FilePath);
             waveOutEvent = new WaveOutEvent();
@@ -816,6 +822,11 @@ namespace Event_timer
 
         private void CleanupAudio()
         {
+            //waveOutEvent 와 audioFileReader 두개를 모두 정리.
+            for(int i = 0; i<Musics.Count ;i++)
+            {
+                Musics[i].Is_Playing = false;
+            }
             if (waveOutEvent != null)
             {
                 waveOutEvent.PlaybackStopped -= WaveOutEvent_PlaybackStopped;
@@ -854,9 +865,9 @@ namespace Event_timer
         {
             if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
             {
+                is_Stopped = true;
                 waveOutEvent.Stop();
                 audioFileReader.Position = 0;
-                is_Stopped = true;
             }
         }
 
@@ -865,22 +876,25 @@ namespace Event_timer
             // 현재 재생 중인 음악 정지
             StopCurrentMusic();
 
-            if (current_music_index < Musics.Count)
+            if (current_music_index + 1 < Musics.Count)
             {
+                // 다음 음악 인덱스로 이동
+                current_music_index++;
                 // 다음 음악 재생
                 Music music = Musics[current_music_index];
                 OpenFile(music);
                 waveOutEvent.Play();
-                music.Is_Playing = true;
 
-                // 다음 음악 인덱스로 이동
-                current_music_index++;
             }
             else
             {
                 // 마지막 음악까지 재생한 경우, 재생을 종료하고 후속 작업 수행
-                //Stop();
-                // 종료 이벤트 등 추가 작업 수행
+                
+                // 음악 인덱스 0으로 이동 ==첫번째 음원으로 가자==
+                current_music_index = 0;
+                Music music = Musics[current_music_index];
+                OpenFile(music);
+                waveOutEvent.Play();
             }
         }
 
@@ -898,83 +912,69 @@ namespace Event_timer
             }
         }
 
-        private void Music_ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            //listView 아이템 더블클릭시
-            //재생곡, index, isplaying 변경
-            if (Music_ListView.SelectedItem is Music selectedMusic)
-            {
-                if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
-                {
-                    waveOutEvent.Stop();
-                    audioFileReader.Position = 0;
-                }
-
-                //isplaying 변경
-                Make_All_Music_False();//모든 음악 isPlaying = false;
-                selectedMusic.Is_Playing = true;
-                //재생곡 변경
-                OpenFile(selectedMusic);
-                waveOutEvent.Play();
-                //index 변경
-                current_music_index = Music_ListView.SelectedIndex;
-            }
-        }
-
-        private void Make_All_Music_False()
-        {
-            //ListView 의 ▶ 버튼 모두 안보이기
-            foreach (Music music in Musics)
-            {
-                music.Is_Playing = false;
-            }
-        }
-
         private void WaveOutEvent_PlaybackStopped(object sender, StoppedEventArgs e)
         {
-            // 오디오 재생이 멈추면 실행될 코드 작성
+            // 음악 재생이 멈추면 실행될 코드 작성
 
-            //음악이 끝난거라면,
-            if (!is_Stopped)
+            // 음악이 끝난 경우
+            if (is_Stopped)
             {
-                //곡 시간 끝남
-                PlayNextMusic();
+                // 정지 버튼 누름 또는 이벤트 종료
+                is_Stopped = false;
+            }
+            else if (is_DoubleClick)
+            {
+                // 더블 클릭으로 음악이 끝난 경우
+                is_DoubleClick = false;
             }
             else
             {
-                //정지버튼 누름
-                is_Stopped = false;
+                // 곡 시간이 끝났을 때만 다음 곡 재생
+                PlayNextMusic();
             }
         }
 
         private void Start_Music_Auto()
         {
             //자동으로 음악 시작 (시작 이벤트 발생 시)
-
+            
             if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
             {
                 waveOutEvent.Stop();
                 audioFileReader.Position = 0;
             }
+
+            current_music_index = 0; //무조건 0번 인덱스부터 시작
             OpenFile(Musics[0]);
             waveOutEvent.Play();
         }
 
         private void End_Music_Auto()
         {
-            //자동으로 음악 종료 (종료 이벤트 발생 시)
-
-            if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
-            {
-                waveOutEvent.Stop();
-                audioFileReader.Position = 0;
-                if (current_music_index < Musics.Count)
-                {
-                    Musics[current_music_index].Is_Playing = false;
-                }
-            }
-
+            //음악 종료 (종료 이벤트 발생 시)
+            CleanupAudio();
         }
         #endregion
+
+        private void Music_ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //리스트 item 더블클릭 시
+            //더블 클릭한 음악 시작
+            Music selected_music = (sender as ListView).SelectedItem as Music;
+
+            if (selected_music != null)
+            {
+                if (waveOutEvent != null && waveOutEvent.PlaybackState == PlaybackState.Playing)
+                {
+                    is_DoubleClick = true;
+                    waveOutEvent.Stop();
+                    audioFileReader.Position = 0;
+                }
+
+                current_music_index = (sender as ListView).SelectedIndex; //무조건 0번 인덱스부터 시작
+                OpenFile(Musics[current_music_index]);
+                waveOutEvent.Play();
+            }
+        }
     }
 }

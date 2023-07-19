@@ -9,7 +9,7 @@
         xmlns:local="clr-namespace:Event_timer"
         mc:Ignorable="d"
         Closed="save_settings" ResizeMode="NoResize"
-        Title="MainWindow" Height="800" Width="1200">
+        Title="Auto Starter" Height="800" Width="1200">
     <Window.Resources>
         <local:TimeConverter x:Key="TimeConverter"/>
         <local:DurationConverter x:Key="DurationConverter"/>
@@ -245,15 +245,19 @@
         <!--음악 mp3 플레이어-->
         <Grid x:Name="Music_player" Grid.Column="1" Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="50"/>
-                <RowDefinition Height="450"/>
-                <RowDefinition Height="50"/>
+                <RowDefinition Height="40"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
-                <TextBlock Text="음원 등록" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" FontFamily="Gothic" FontSize="20" FontWeight="Bold"/>
-                <Button Content="+" HorizontalAlignment="Right" Width="50" Height="40" Margin="5" Padding="0" FontSize="20" VerticalContentAlignment="Center" Click="Add_new_music"/>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock Text="재생 목록" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" FontFamily="Gothic" FontSize="20" FontWeight="Bold"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Stop, Size=15}" Padding="0" Margin="3" Click="StopButton_Click"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Play, Size=15}" Padding="0" Margin="3" Click="PlayButton_Click"/>
+                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Pause, Size=15}" Padding="0" Margin="3" Click="PauseButton_Click"/>
+                </StackPanel>
+                <Button Content="+" HorizontalAlignment="Right" Width="40" Height="30" Margin="5" Padding="0" FontSize="15" VerticalContentAlignment="Center" Click="Add_new_music"/>
             </Grid>
             <Grid Grid.Row="1">
                 <ListView x:Name="Music_ListView" d:ItemsSource="{d:SampleData}" Margin="5" ScrollViewer.HorizontalScrollBarVisibility ="Hidden" ItemsSource="{Binding Musics}" MouseDoubleClick="Music_ListView_MouseDoubleClick">
@@ -279,9 +283,9 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="음원 파일명" Width="180" DisplayMemberBinding="{Binding FileName}"/>
-                            <GridViewColumn Header="재생시간" Width="100" DisplayMemberBinding="{Binding Duration, Converter={StaticResource DurationConverter}}"/>
-                            <GridViewColumn Header="용량" Width="80" DisplayMemberBinding="{Binding Size, Converter={StaticResource SizeConverter}}"/>
+                            <GridViewColumn Header="음원 파일명" Width="200" DisplayMemberBinding="{Binding FileName}"/>
+                            <GridViewColumn Header="재생시간" Width="90" DisplayMemberBinding="{Binding Duration, Converter={StaticResource DurationConverter}}"/>
+                            <GridViewColumn Header="용량" Width="70" DisplayMemberBinding="{Binding Size, Converter={StaticResource SizeConverter}}"/>
                             <GridViewColumn Header="🗑" Width="70">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
@@ -297,18 +301,6 @@
                         </Style>
                     </ListView.ItemContainerStyle>
                 </ListView>
-            </Grid>
-            <Grid Grid.Row="2">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Text="현재 곡" Margin="5" FontSize="15" FontFamily="Gothic" VerticalAlignment="Center" FontWeight="Bold"/>
-                    <TextBox x:Name="selected_music" IsReadOnly="True" IsHitTestVisible="False" Width="150" Margin="5" HorizontalContentAlignment="Right" VerticalContentAlignment="Center"/>
-                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Stop, Size=15}" Padding="0" Margin="3" Click="StopButton_Click"/>
-                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Play, Size=15}" Padding="0" Margin="3" Click="PlayButton_Click"/>
-                    <Button Width="25" Height="25" Style="{StaticResource round_button}" Content="{materialIcons:MaterialIconExt Kind=Pause, Size=15}" Padding="0" Margin="3" Click="PauseButton_Click"/>
-                </StackPanel>
-            </Grid>
-            <Grid Grid.Row="3">
-
             </Grid>
         </Grid>
     </Grid>
